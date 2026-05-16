@@ -1,65 +1,87 @@
-import Image from "next/image";
+import { prisma } from "@/lib/prisma";
+import MatchCard from "@/components/MatchCard";
 
-export default function Home() {
+export default async function HomePage() {
+  const matches = await prisma.match.findMany({
+    include: { homeTeam: true, awayTeam: true },
+    orderBy: [{ date: "asc" }, { matchNumber: "asc" }],
+  });
+
+  // Group matches by date
+  const matchesByDate = new Map<string, typeof matches>();
+  for (const match of matches) {
+    const existing = matchesByDate.get(match.date) ?? [];
+    existing.push(match);
+    matchesByDate.set(match.date, existing);
+  }
+
+  function formatDate(dateStr: string) {
+    const d = new Date(dateStr + "T12:00:00");
+    return d.toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    });
+  }
+
+  // Count stats
+  const groupMatches = matches.filter((m) => m.stage.startsWith("Group")).length;
+  const knockoutMatches = matches.length - groupMatches;
+  const totalTeams = await prisma.team.count();
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div>
+      {/* Hero */}
+      <div className="mb-10 text-center">
+        <h1 className="text-4xl font-bold md:text-5xl">
+          <span className="bg-gradient-to-r from-[var(--accent)] via-purple-400 to-pink-400 bg-clip-text text-transparent">
+            FIFA World Cup 2026
+          </span>
+        </h1>
+        <p className="mt-2 text-[var(--text-secondary)]">
+          🇺🇸 USA • 🇨🇦 Canada • 🇲🇽 Mexico — June 11 to July 19
+        </p>
+
+        {/* Quick stats */}
+        <div className="mt-6 flex justify-center gap-6 text-sm">
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2">
+            <span className="text-2xl font-bold text-[var(--accent)]">{totalTeams}</span>
+            <span className="ml-1 text-[var(--text-muted)]">Teams</span>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2">
+            <span className="text-2xl font-bold text-[var(--gold)]">{matches.length}</span>
+            <span className="ml-1 text-[var(--text-muted)]">Matches</span>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2">
+            <span className="text-2xl font-bold text-[var(--green)]">{groupMatches}</span>
+            <span className="ml-1 text-[var(--text-muted)]">Group</span>
+          </div>
+          <div className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-4 py-2">
+            <span className="text-2xl font-bold text-purple-400">{knockoutMatches}</span>
+            <span className="ml-1 text-[var(--text-muted)]">Knockout</span>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+      </div>
+
+      {/* Match Calendar */}
+      <div className="space-y-8">
+        {Array.from(matchesByDate.entries()).map(([date, dayMatches]) => (
+          <section key={date}>
+            <div className="sticky top-[57px] z-10 -mx-4 mb-4 border-b border-[var(--border)] bg-[var(--bg-primary)]/90 px-4 py-2 backdrop-blur-md">
+              <h2 className="text-lg font-semibold">{formatDate(date)}</h2>
+              <p className="text-xs text-[var(--text-muted)]">
+                {dayMatches.length} match{dayMatches.length !== 1 ? "es" : ""}
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {dayMatches.map((match) => (
+                <MatchCard key={match.id} match={match} />
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
     </div>
   );
 }

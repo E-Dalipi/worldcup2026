@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  code      String   @unique
+  flag      String
+  groupName String
+  
+  homeMatches  Match[] @relation("HomeTeam")
+  awayMatches  Match[] @relation("AwayTeam")
+  goals        GoalEvent[]
+}
+
+model Match {
+  id         Int      @id @default(autoincrement())
+  matchNumber Int     @unique
+  date       String
+  time       String
+  stage      String
+  venue      String
+  city       String
+  
+  homeTeamId Int?
+  awayTeamId Int?
+  homeTeam   Team?    @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam   Team?    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  
+  homePlaceholder String?
+  awayPlaceholder String?
+  
+  scoreHome  Int?
+  scoreAway  Int?
+  status     String   @default("scheduled")
+  
+  goals      GoalEvent[]
+  highlights Highlight[]
+}
+
+model GoalEvent {
+  id         Int    @id @default(autoincrement())
+  matchId    Int
+  match      Match  @relation(fields: [matchId], references: [id])
+  teamId     Int
+  team       Team   @relation(fields: [teamId], references: [id])
+  playerName String
+  minute     Int
+  minuteExtra Int?
+  assistName String?
+  goalType   String @default("goal")
+}
+
+model Highlight {
+  id          Int    @id @default(autoincrement())
+  matchId     Int
+  match       Match  @relation(fields: [matchId], references: [id])
+  title       String
+  description String?
+  minute      Int?
+  videoUrl    String?
+  type        String @default("moment")
+}
