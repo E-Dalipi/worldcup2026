@@ -25,6 +25,11 @@ function formatDate(dateStr: string) {
   });
 }
 
+export async function generateStaticParams() {
+  const matches = await prisma.match.findMany({ select: { matchNumber: true } });
+  return matches.map((m) => ({ matchNumber: String(m.matchNumber) }));
+}
+
 export default async function MatchPage({
   params,
 }: {
