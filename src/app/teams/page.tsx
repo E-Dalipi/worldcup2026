@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
+export const revalidate = 60;
+
 export default async function TeamsPage() {
   const teams = await prisma.team.findMany({
     orderBy: [{ groupName: "asc" }, { name: "asc" }],

@@ -2,10 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import MatchCard from "@/components/MatchCard";
 
-export async function generateStaticParams() {
-  const teams = await prisma.team.findMany({ select: { code: true } });
-  return teams.map((t) => ({ code: t.code.toLowerCase() }));
-}
+export const revalidate = 60;
 
 export default async function TeamPage({
   params,

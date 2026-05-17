@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import MatchCard from "@/components/MatchCard";
 
+export const revalidate = 60;
+
 export default async function KnockoutPage() {
   const matches = await prisma.match.findMany({
     where: {

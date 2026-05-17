@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import MatchCard from "@/components/MatchCard";
 
+export const revalidate = 60; // Refresh data every 60 seconds
+
 export default async function HomePage() {
   const matches = await prisma.match.findMany({
     include: { homeTeam: true, awayTeam: true },

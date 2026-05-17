@@ -235,22 +235,29 @@ async function main() {
   }
   console.log(`✅ Created ${teams.length} teams`);
 
-  // Create matches
-  for (const m of matches) {
-    await prisma.match.create({
-      data: {
-        matchNumber: m.matchNumber,
-        date: m.date,
-        time: m.time,
-        stage: m.stage,
-        venue: m.venue,
-        city: m.city,
-        homeTeamId: m.homeTeam ? teamMap.get(m.homeTeam) ?? null : null,
-        awayTeamId: m.awayTeam ? teamMap.get(m.awayTeam) ?? null : null,
-        homePlaceholder: m.homePlaceholder ?? null,
-        awayPlaceholder: m.awayPlaceholder ?? null,
-      },
-    });
+  // Create matches in batches
+  const BATCH_SIZE = 20;
+  for (let i = 0; i < matches.length; i += BATCH_SIZE) {
+    const batch = matches.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map((m) =>
+        prisma.match.create({
+          data: {
+            matchNumber: m.matchNumber,
+            date: m.date,
+            time: m.time,
+            stage: m.stage,
+            venue: m.venue,
+            city: m.city,
+            homeTeamId: m.homeTeam ? teamMap.get(m.homeTeam) ?? null : null,
+            awayTeamId: m.awayTeam ? teamMap.get(m.awayTeam) ?? null : null,
+            homePlaceholder: m.homePlaceholder ?? null,
+            awayPlaceholder: m.awayPlaceholder ?? null,
+          },
+        })
+      )
+    );
+    console.log(`  ... batch ${Math.floor(i / BATCH_SIZE) + 1} done`);
   }
   console.log(`✅ Created ${matches.length} matches`);
   console.log("🏆 Seeding complete!");

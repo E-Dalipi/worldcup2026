@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 
+export const revalidate = 30; // Faster refresh for match pages
+
 function getStageLabel(stage: string) {
   if (stage.startsWith("Group")) return stage;
   const labels: Record<string, string> = {
@@ -23,11 +25,6 @@ function formatDate(dateStr: string) {
     day: "numeric",
     year: "numeric",
   });
-}
-
-export async function generateStaticParams() {
-  const matches = await prisma.match.findMany({ select: { matchNumber: true } });
-  return matches.map((m) => ({ matchNumber: String(m.matchNumber) }));
 }
 
 export default async function MatchPage({

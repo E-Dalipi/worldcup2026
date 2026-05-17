@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import MatchCard from "@/components/MatchCard";
 
+export const revalidate = 60;
+
 export default async function GroupsPage() {
   const teams = await prisma.team.findMany({
     orderBy: [{ groupName: "asc" }, { name: "asc" }],
