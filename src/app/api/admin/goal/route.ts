@@ -14,7 +14,6 @@ export async function POST(request: Request) {
     data: { matchId, teamId, playerName, minute, minuteExtra, assistName, goalType },
   });
   
-  // Get match number for revalidation
   const match = await prisma.match.findUnique({ where: { id: matchId } });
   if (match) {
     revalidatePath(`/match/${match.matchNumber}`);
@@ -22,4 +21,27 @@ export async function POST(request: Request) {
   }
   
   return NextResponse.json({ success: true, goal });
+}
+
+export async function DELETE(request: Request) {
+  const { password, goalId } = await request.json();
+  
+  if (password !== process.env.ADMIN_PASSWORD) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  
+  const goal = await prisma.goalEvent.findUnique({ where: { id: goalId } });
+  if (!goal) {
+    return NextResponse.json({ error: "Goal not found" }, { status: 404 });
+  }
+  
+  await prisma.goalEvent.delete({ where: { id: goalId } });
+  
+  const match = await prisma.match.findUnique({ where: { id: goal.matchId } });
+  if (match) {
+    revalidatePath(`/match/${match.matchNumber}`);
+    revalidatePath("/");
+  }
+  
+  return NextResponse.json({ success: true });
 }

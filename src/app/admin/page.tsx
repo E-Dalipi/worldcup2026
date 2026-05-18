@@ -26,6 +26,25 @@ interface Match {
   awayPlaceholder: string | null;
 }
 
+interface GoalData {
+  id: number;
+  playerName: string;
+  minute: number;
+  minuteExtra: number | null;
+  assistName: string | null;
+  goalType: string;
+  team: Team;
+}
+
+interface HighlightData {
+  id: number;
+  title: string;
+  description: string | null;
+  minute: number | null;
+  videoUrl: string | null;
+  type: string;
+}
+
 export default function AdminPage() {
   const [authenticated, setAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -46,6 +65,10 @@ export default function AdminPage() {
   const [goalTeamId, setGoalTeamId] = useState("");
   const [goalAssist, setGoalAssist] = useState("");
   const [goalType, setGoalType] = useState("goal");
+
+  // Existing data for selected match
+  const [existingGoals, setExistingGoals] = useState<GoalData[]>([]);
+  const [existingHighlights, setExistingHighlights] = useState<HighlightData[]>([]);
 
   // Highlight form
   const [hlTitle, setHlTitle] = useState("");
@@ -76,6 +99,46 @@ export default function AdminPage() {
     if (res.ok) {
       const data = await res.json();
       setMatches(data);
+    }
+  }
+
+  async function fetchMatchDetails(matchId: number) {
+    const pwd = localStorage.getItem("admin_pwd") || password;
+    const res = await fetch(`/api/admin/match-details?password=${encodeURIComponent(pwd)}&matchId=${matchId}`);
+    if (res.ok) {
+      const data = await res.json();
+      setExistingGoals(data.goals);
+      setExistingHighlights(data.highlights);
+    }
+  }
+
+  async function deleteGoal(goalId: number) {
+    const pwd = localStorage.getItem("admin_pwd") || password;
+    const res = await fetch("/api/admin/goal", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd, goalId }),
+    });
+    if (res.ok) {
+      setMessage("✅ Goal deleted!");
+      if (selectedMatch) fetchMatchDetails(selectedMatch.id);
+    } else {
+      setMessage("❌ Failed to delete goal");
+    }
+  }
+
+  async function deleteHighlight(highlightId: number) {
+    const pwd = localStorage.getItem("admin_pwd") || password;
+    const res = await fetch("/api/admin/highlight", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd, highlightId }),
+    });
+    if (res.ok) {
+      setMessage("✅ Highlight deleted!");
+      if (selectedMatch) fetchMatchDetails(selectedMatch.id);
+    } else {
+      setMessage("❌ Failed to delete highlight");
     }
   }
 
@@ -130,6 +193,7 @@ export default function AdminPage() {
       setGoalMinute("");
       setGoalMinuteExtra("");
       setGoalAssist("");
+      if (selectedMatch) fetchMatchDetails(selectedMatch.id);
     } else {
       setMessage("❌ Failed to add goal");
     }
@@ -160,6 +224,7 @@ export default function AdminPage() {
       setHlDescription("");
       setHlMinute("");
       setHlVideoUrl("");
+      if (selectedMatch) fetchMatchDetails(selectedMatch.id);
     } else {
       setMessage("❌ Failed to add highlight");
     }
@@ -192,6 +257,7 @@ export default function AdminPage() {
     setStatus(match.status);
     setGoalTeamId(match.homeTeam?.id.toString() ?? "");
     setMessage("");
+    fetchMatchDetails(match.id);
   }
 
   if (!authenticated) {
@@ -473,6 +539,71 @@ export default function AdminPage() {
                 Add Highlight
               </button>
             </form>
+
+            {/* Existing Goals */}
+            {existingGoals.length > 0 && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 space-y-3">
+                <h3 className="font-bold">⚽ Existing Goals ({existingGoals.length})</h3>
+                <div className="space-y-2">
+                  {existingGoals.map((goal) => (
+                    <div
+                      key={goal.id}
+                      className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-bold text-[var(--accent)]">{goal.minute}&apos;{goal.minuteExtra ? `+${goal.minuteExtra}` : ""}</span>
+                        <span>{goal.team.flag}</span>
+                        <span className="text-sm font-medium">{goal.playerName}</span>
+                        {goal.assistName && (
+                          <span className="text-xs text-[var(--text-muted)]">(ast: {goal.assistName})</span>
+                        )}
+                        <span className="text-xs text-[var(--text-muted)]">[{goal.goalType}]</span>
+                      </div>
+                      <button
+                        onClick={() => deleteGoal(goal.id)}
+                        className="rounded px-2 py-1 text-xs text-[var(--red)] hover:bg-[var(--red)]/10 transition"
+                      >
+                        🗑 Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Existing Highlights */}
+            {existingHighlights.length > 0 && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4 space-y-3">
+                <h3 className="font-bold">🎬 Existing Highlights ({existingHighlights.length})</h3>
+                <div className="space-y-2">
+                  {existingHighlights.map((hl) => (
+                    <div
+                      key={hl.id}
+                      className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-2"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          {hl.minute && (
+                            <span className="text-xs font-bold text-[var(--accent)]">{hl.minute}&apos;</span>
+                          )}
+                          <span className="text-sm font-medium truncate">{hl.title}</span>
+                          <span className="text-xs text-[var(--text-muted)]">[{hl.type}]</span>
+                        </div>
+                        {hl.description && (
+                          <p className="text-xs text-[var(--text-muted)] truncate mt-0.5">{hl.description}</p>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteHighlight(hl.id)}
+                        className="ml-2 rounded px-2 py-1 text-xs text-[var(--red)] hover:bg-[var(--red)]/10 transition shrink-0"
+                      >
+                        🗑 Delete
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
