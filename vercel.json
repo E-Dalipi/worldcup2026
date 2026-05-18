@@ -2,11 +2,11 @@
   "crons": [
     {
       "path": "/api/sync?key=worldcup2026admin",
-      "schedule": "*/2 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/reddit?key=worldcup2026admin",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
