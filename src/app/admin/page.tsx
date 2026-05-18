@@ -104,7 +104,7 @@ export default function AdminPage() {
 
   async function fetchMatchDetails(matchId: number) {
     const pwd = localStorage.getItem("admin_pwd") || password;
-    const res = await fetch(`/api/admin/match-details?password=${encodeURIComponent(pwd)}&matchId=${matchId}`);
+    const res = await fetch(`/api/admin/matchdetails?password=${encodeURIComponent(pwd)}&matchId=${matchId}`);
     if (res.ok) {
       const data = await res.json();
       setExistingGoals(data.goals);
