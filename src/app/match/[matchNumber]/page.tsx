@@ -49,6 +49,7 @@ export default async function MatchPage({
 
   const isFinished = match.status === "finished";
   const isLive = match.status === "live";
+  const hasScore = match.scoreHome !== null && match.scoreAway !== null;
   const homeName = match.homeTeam?.name ?? match.homePlaceholder ?? "TBD";
   const awayName = match.awayTeam?.name ?? match.awayPlaceholder ?? "TBD";
   const homeFlag = match.homeTeam?.flag ?? "🏳️";
@@ -103,7 +104,7 @@ export default async function MatchPage({
 
           {/* Score */}
           <div className="flex flex-col items-center">
-            {isFinished || isLive ? (
+            {hasScore || isFinished || isLive ? (
               <div className="flex items-center gap-3">
                 <span className="rounded-xl bg-[var(--bg-primary)] px-4 py-2 text-4xl font-bold tabular-nums md:text-5xl">
                   {match.scoreHome ?? 0}

@@ -52,6 +52,7 @@ function getStageLabel(stage: string) {
 export default function MatchCard({ match }: MatchCardProps) {
   const isFinished = match.status === "finished";
   const isLive = match.status === "live";
+  const hasScore = match.scoreHome !== null && match.scoreAway !== null;
 
   const homeName = match.homeTeam?.name ?? match.homePlaceholder ?? "TBD";
   const awayName = match.awayTeam?.name ?? match.awayPlaceholder ?? "TBD";
@@ -95,7 +96,7 @@ export default function MatchCard({ match }: MatchCardProps) {
 
           {/* Score */}
           <div className="mx-4 flex items-center gap-1">
-            {isFinished || isLive ? (
+            {hasScore || isFinished || isLive ? (
               <>
                 <span className="min-w-[2rem] rounded-lg bg-[var(--bg-primary)] px-2 py-1 text-center text-xl font-bold tabular-nums">
                   {match.scoreHome ?? 0}
