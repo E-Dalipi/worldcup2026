@@ -194,25 +194,39 @@ export async function GET(request: Request) {
           extractVideoUrl(post.data) ||
           `https://reddit.com${post.data.permalink}`;
 
-        // Check if we already added this highlight (by reddit post ID in videoUrl or title)
+        // Check if we already added this highlight (by reddit URL)
+        const redditPermalink = `https://reddit.com${post.data.permalink}`;
         const existing = await prisma.highlight.findFirst({
           where: {
             matchId: matchInfo.matchId,
-            title: title.substring(0, 200),
+            redditUrl: redditPermalink,
           },
         });
 
-        if (existing) continue;
+        if (existing) {
+          // Update upvotes if changed
+          if (existing.upvotes !== score) {
+            await prisma.highlight.update({
+              where: { id: existing.id },
+              data: { upvotes: score },
+            });
+          }
+          continue;
+        }
 
         // Add as highlight
         await prisma.highlight.create({
           data: {
             matchId: matchInfo.matchId,
             title: title.substring(0, 200),
-            description: `via r/${post.data.subreddit} (${score} upvotes)`,
+            description: null,
             minute: extractMinute(title),
             videoUrl,
             type: detectHighlightType(title),
+            source: "reddit",
+            subreddit: post.data.subreddit,
+            upvotes: score,
+            redditUrl: redditPermalink,
           },
         });
 

@@ -1,8 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import MatchTabs from "./MatchTabs";
 
-export const revalidate = 30; // Faster refresh for match pages
+export const revalidate = 30;
 
 function getStageLabel(stage: string) {
   if (stage.startsWith("Group")) return stage;
@@ -41,7 +42,7 @@ export default async function MatchPage({
       homeTeam: true,
       awayTeam: true,
       goals: { include: { team: true }, orderBy: { minute: "asc" } },
-      highlights: { orderBy: { minute: "asc" } },
+      highlights: { orderBy: [{ minute: "asc" }, { upvotes: "desc" }] },
     },
   });
 
@@ -54,6 +55,10 @@ export default async function MatchPage({
   const awayName = match.awayTeam?.name ?? match.awayPlaceholder ?? "TBD";
   const homeFlag = match.homeTeam?.flag ?? "🏳️";
   const awayFlag = match.awayTeam?.flag ?? "🏳️";
+
+  // Separate editorial highlights from Reddit UGC
+  const editorialHighlights = match.highlights.filter((h) => h.source === "editorial");
+  const redditHighlights = match.highlights.filter((h) => h.source === "reddit");
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -88,7 +93,6 @@ export default async function MatchPage({
 
         {/* Score display */}
         <div className="flex items-center justify-center gap-6 md:gap-10">
-          {/* Home */}
           <div className="flex flex-col items-center gap-2 flex-1">
             <span className="text-5xl md:text-6xl">{homeFlag}</span>
             <span className="text-lg font-bold text-center">{homeName}</span>
@@ -102,7 +106,6 @@ export default async function MatchPage({
             )}
           </div>
 
-          {/* Score */}
           <div className="flex flex-col items-center">
             {hasScore || isFinished || isLive ? (
               <div className="flex items-center gap-3">
@@ -122,7 +125,6 @@ export default async function MatchPage({
             )}
           </div>
 
-          {/* Away */}
           <div className="flex flex-col items-center gap-2 flex-1">
             <span className="text-5xl md:text-6xl">{awayFlag}</span>
             <span className="text-lg font-bold text-center">{awayName}</span>
@@ -197,51 +199,39 @@ export default async function MatchPage({
         </div>
       )}
 
-      {/* Highlights */}
-      {match.highlights.length > 0 && (
-        <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
-          <h2 className="mb-4 text-lg font-bold">🎬 Highlights</h2>
-          <div className="space-y-4">
-            {match.highlights.map((hl) => (
-              <div
-                key={hl.id}
-                className="rounded-lg border border-[var(--border)] bg-[var(--bg-primary)] p-4"
-              >
-                <div className="flex items-center gap-2 mb-1">
-                  {hl.minute && (
-                    <span className="text-xs font-bold text-[var(--accent)]">
-                      {hl.minute}&apos;
-                    </span>
-                  )}
-                  <span className="font-medium">{hl.title}</span>
-                </div>
-                {hl.description && (
-                  <p className="text-sm text-[var(--text-secondary)]">{hl.description}</p>
-                )}
-                {hl.videoUrl && (
-                  <a
-                    href={hl.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center gap-1 text-sm text-[var(--accent)] hover:underline"
-                  >
-                    ▶ Watch Clip
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Tabbed content: Highlights + Fan Reactions */}
+      <MatchTabs
+        editorialHighlights={editorialHighlights.map((h) => ({
+          id: h.id,
+          title: h.title,
+          description: h.description,
+          minute: h.minute,
+          videoUrl: h.videoUrl,
+          type: h.type,
+        }))}
+        redditHighlights={redditHighlights.map((h) => ({
+          id: h.id,
+          title: h.title,
+          minute: h.minute,
+          videoUrl: h.videoUrl,
+          type: h.type,
+          subreddit: h.subreddit,
+          upvotes: h.upvotes,
+          redditUrl: h.redditUrl,
+        }))}
+      />
 
       {/* Empty state for scheduled matches */}
-      {match.status === "scheduled" && (
-        <div className="mt-6 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] p-8 text-center">
-          <p className="text-[var(--text-muted)]">
-            This match hasn&apos;t been played yet. Goals, highlights, and match details will appear here after kickoff.
-          </p>
-        </div>
-      )}
+      {match.status === "scheduled" &&
+        match.goals.length === 0 &&
+        match.highlights.length === 0 && (
+          <div className="mt-6 rounded-xl border border-dashed border-[var(--border)] bg-[var(--bg-card)] p-8 text-center">
+            <p className="text-[var(--text-muted)]">
+              This match hasn&apos;t been played yet. Goals, highlights, and
+              fan reactions will appear here after kickoff.
+            </p>
+          </div>
+        )}
     </div>
   );
 }
