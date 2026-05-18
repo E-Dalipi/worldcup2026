@@ -26,6 +26,26 @@ export async function GET(request: Request) {
     return NextResponse.json({ goals, highlights });
   }
   
+  // Watch party approvals
+  const approveParty = searchParams.get("approveParty");
+  if (approveParty) {
+    await prisma.watchParty.update({
+      where: { id: parseInt(approveParty) },
+      data: { approved: true },
+    });
+    return NextResponse.json({ success: true });
+  }
+
+  // List pending watch parties
+  const pendingParties = searchParams.get("pendingParties");
+  if (pendingParties === "true") {
+    const parties = await prisma.watchParty.findMany({
+      where: { approved: false },
+      orderBy: { createdAt: "desc" },
+    });
+    return NextResponse.json(parties);
+  }
+
   // Otherwise return all matches
   const matches = await prisma.match.findMany({
     include: { homeTeam: true, awayTeam: true },

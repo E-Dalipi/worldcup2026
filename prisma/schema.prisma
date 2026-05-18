@@ -20,8 +20,8 @@ model Team {
 }
 
 model Match {
-  id              Int         @id @default(autoincrement())
-  matchNumber     Int         @unique
+  id              Int          @id @default(autoincrement())
+  matchNumber     Int          @unique
   date            String
   time            String
   stage           String
@@ -33,11 +33,13 @@ model Match {
   awayPlaceholder String?
   scoreHome       Int?
   scoreAway       Int?
-  status          String      @default("scheduled")
+  status          String       @default("scheduled")
+  summary         String?
   goals           GoalEvent[]
   highlights      Highlight[]
-  awayTeam        Team?       @relation("AwayTeam", fields: [awayTeamId], references: [id])
-  homeTeam        Team?       @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  predictions     Prediction[]
+  awayTeam        Team?        @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeTeam        Team?        @relation("HomeTeam", fields: [homeTeamId], references: [id])
 }
 
 model GoalEvent {
@@ -66,4 +68,29 @@ model Highlight {
   upvotes     Int?
   redditUrl   String?
   match       Match   @relation(fields: [matchId], references: [id])
+}
+
+model Prediction {
+  id            Int    @id @default(autoincrement())
+  matchId       Int
+  visitorId     String
+  predictedHome Int
+  predictedAway Int
+  createdAt     DateTime @default(now())
+  match         Match  @relation(fields: [matchId], references: [id])
+
+  @@unique([matchId, visitorId])
+}
+
+model WatchParty {
+  id          Int      @id @default(autoincrement())
+  city        String
+  country     String   @default("US")
+  venueName   String
+  address     String?
+  description String?
+  teamFanbase String?
+  submittedBy String?
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
 }

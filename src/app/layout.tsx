@@ -42,6 +42,12 @@ function Navbar() {
           >
             Teams
           </a>
+          <a
+            href="/watch-parties"
+            className="text-[var(--text-secondary)] transition hover:text-[var(--text-primary)]"
+          >
+            🍻 Watch
+          </a>
         </div>
       </div>
     </nav>

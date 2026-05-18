@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import MatchTabs from "./MatchTabs";
+import PredictionWidget from "./PredictionWidget";
 
 export const revalidate = 30;
 
@@ -221,6 +222,28 @@ export default async function MatchPage({
         }))}
       />
 
+      {/* Fan Predictions */}
+      <PredictionWidget
+        matchId={match.id}
+        matchStatus={match.status}
+        homeName={homeName}
+        awayName={awayName}
+        homeFlag={homeFlag}
+        awayFlag={awayFlag}
+        actualHome={match.scoreHome}
+        actualAway={match.scoreAway}
+      />
+
+      {/* AI Match Summary */}
+      {match.summary && (
+        <div className="mt-6 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6">
+          <h2 className="mb-3 text-lg font-bold">📝 Match Summary</h2>
+          <div className="text-sm text-[var(--text-secondary)] leading-relaxed whitespace-pre-line">
+            {match.summary}
+          </div>
+        </div>
+      )}
+
       {/* Empty state for scheduled matches */}
       {match.status === "scheduled" &&
         match.goals.length === 0 &&
@@ -232,6 +255,77 @@ export default async function MatchPage({
             </p>
           </div>
         )}
+
+      {/* Structured Data for SEO/AEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SportsEvent",
+            name: `${homeName} vs ${awayName} - FIFA World Cup 2026`,
+            startDate: `${match.date}T12:00:00-04:00`,
+            location: {
+              "@type": "Place",
+              name: match.venue,
+              address: match.city,
+            },
+            homeTeam: { "@type": "SportsTeam", name: homeName },
+            awayTeam: { "@type": "SportsTeam", name: awayName },
+            ...(isFinished && match.scoreHome !== null && match.scoreAway !== null
+              ? {
+                  result: {
+                    "@type": "SportsEventResult",
+                    homeScore: match.scoreHome,
+                    awayScore: match.scoreAway,
+                  },
+                }
+              : {}),
+            description: match.summary ?? `${getStageLabel(match.stage)} match at the 2026 FIFA World Cup at ${match.venue}, ${match.city}.`,
+          }),
+        }}
+      />
+
+      {/* FAQ Schema for AEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: `When is ${homeName} vs ${awayName} at the 2026 World Cup?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: `${homeName} vs ${awayName} is scheduled for ${formatDate(match.date)} at ${match.time} at ${match.venue}, ${match.city}.`,
+                },
+              },
+              ...(isFinished && match.scoreHome !== null && match.scoreAway !== null
+                ? [
+                    {
+                      "@type": "Question",
+                      name: `What was the score of ${homeName} vs ${awayName}?`,
+                      acceptedAnswer: {
+                        "@type": "Answer",
+                        text: `The final score was ${homeName} ${match.scoreHome} - ${match.scoreAway} ${awayName}.`,
+                      },
+                    },
+                  ]
+                : []),
+              {
+                "@type": "Question",
+                name: `Where is ${homeName} vs ${awayName} being played?`,
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: `The match is being played at ${match.venue} in ${match.city}.`,
+                },
+              },
+            ],
+          }),
+        }}
+      />
     </div>
   );
 }
