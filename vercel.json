@@ -5,7 +5,7 @@
       "schedule": "*/2 * * * *"
     },
     {
-      "path": "/api/scrape-reddit?key=worldcup2026admin",
+      "path": "/api/reddit?key=worldcup2026admin",
       "schedule": "*/5 * * * *"
     }
   ]
